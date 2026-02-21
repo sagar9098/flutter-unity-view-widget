@@ -1,9 +1,5 @@
 package com.xraph.plugin.flutter_unity_widget
 
-import androidx.annotation.Nullable
-import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 
-interface LifecycleProvider {
-    @Nullable
-    fun getLifecycle(): Lifecycle
-}
+interface LifecycleProvider : LifecycleOwner

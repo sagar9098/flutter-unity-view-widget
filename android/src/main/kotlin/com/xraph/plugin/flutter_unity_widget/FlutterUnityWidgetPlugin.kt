@@ -31,9 +31,8 @@ class FlutterUnityWidgetPlugin : FlutterPlugin, ActivityAware {
                         FlutterUnityWidgetFactory(
                                 binding.binaryMessenger,
                                 object : LifecycleProvider {
-                                    override fun getLifecycle(): Lifecycle {
-                                        return lifecycle!!
-                                    }
+                                    override val lifecycle: Lifecycle
+                                        get() = this@FlutterUnityWidgetPlugin.lifecycle!!
                                 }))
     }
 
@@ -70,9 +69,6 @@ class FlutterUnityWidgetPlugin : FlutterPlugin, ActivityAware {
         lifecycle = null
     }
 
-    /**
-     *
-     */
     private fun handleActivityChange(activity: Activity?) {
         Log.d(LOG_TAG, "handleActivityChange")
         if (activity != null) {
@@ -80,87 +76,63 @@ class FlutterUnityWidgetPlugin : FlutterPlugin, ActivityAware {
             UnityPlayerUtils.activity = activity
             return
         }
-
         UnityPlayerUtils.activity = null
         UnityPlayerUtils.reset()
         UnityPlayerUtils.quitPlayer()
     }
 
-    /**
-     * [August 2024 UPDATE] This unused class was disabled to fix compilation errors in Flutter 3.24.
-     *
-     * This class provides a {@link LifecycleOwner} for the activity driven by {@link
-     * ActivityLifecycleCallbacks}.
-     *
-     * <p>This is used in the case where a direct Lifecycle/Owner is not available.
-     */
-//    @SuppressLint("NewApi")
-//    private class ProxyLifecycleProvider(activity: Activity) : Application.ActivityLifecycleCallbacks, LifecycleOwner, LifecycleProvider {
-//        private val lifecycle = LifecycleRegistry(this)
-//        private var registrarActivityHashCode: Int = 0
-//
-//        init {
-//            UnityPlayerUtils.activity = activity
-//            this.registrarActivityHashCode = activity.hashCode()
-//            activity.application.registerActivityLifecycleCallbacks(this)
-//        }
-//
-//        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-//        }
-//
-//        override fun onActivityStarted(activity: Activity) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-//        }
-//
-//        override fun onActivityResumed(activity: Activity) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-//        }
-//
-//        override fun onActivityPaused(activity: Activity) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-//        }
-//
-//        override fun onActivityStopped(activity: Activity) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-//        }
-//
-//        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
-//            UnityPlayerUtils.activity = activity
-//        }
-//
-//        override fun onActivityDestroyed(activity: Activity) {
-//            UnityPlayerUtils.activity = activity
-//            if (activity.hashCode() != registrarActivityHashCode) {
-//                return
-//            }
-//
-//            activity.application.unregisterActivityLifecycleCallbacks(this)
-//            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-//        }
-//
-//        override fun getLifecycle(): Lifecycle {
-//            return lifecycle
-//        }
-//    }
+    @SuppressLint("NewApi")
+    private class ProxyLifecycleProvider(activity: Activity) : Application.ActivityLifecycleCallbacks, LifecycleProvider {
+
+        private val registry = LifecycleRegistry(this)
+        private var registrarActivityHashCode: Int = activity.hashCode()
+
+        override val lifecycle: Lifecycle get() = registry
+
+        init {
+            UnityPlayerUtils.activity = activity
+            activity.application.registerActivityLifecycleCallbacks(this)
+        }
+
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        }
+
+        override fun onActivityStarted(activity: Activity) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        }
+
+        override fun onActivityResumed(activity: Activity) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
+
+        override fun onActivityPaused(activity: Activity) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        }
+
+        override fun onActivityStopped(activity: Activity) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        }
+
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
+            UnityPlayerUtils.activity = activity
+        }
+
+        override fun onActivityDestroyed(activity: Activity) {
+            UnityPlayerUtils.activity = activity
+            if (activity.hashCode() != registrarActivityHashCode) return
+            activity.application.unregisterActivityLifecycleCallbacks(this)
+            registry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
+    }
 }
